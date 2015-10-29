@@ -95,14 +95,13 @@ function getCoursesForDepartmentURL(departmentURL) {
     var deferred = Q.defer();
     var $ = cheerio.load(value.toString());
     var courses = $(".courseBlock");
-   // console.log(courses)
     deferred.resolve(courses.map(function(i) {
       var code = $(courses[i]).find(".courseCode").text();
       var title = $(courses[i]).find(".courseTitle").text();
       var units = $(courses[i]).find(".units").text().split(" ")[0];
       var sectionTable = $(courses[i]).find(".sectionTable tr");
       var sections = sectionTable.map(function(j) {
-        if(j===0) return undefined;
+        if(j === 0) return undefined;
         var sectionNumber = $(sectionTable[j]).find("td").eq(0).text()
         var classNumber = $(sectionTable[j]).find("td").eq(1).text()
         var type = $(sectionTable[j]).find("td").eq(3).text()
