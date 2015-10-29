@@ -1,11 +1,16 @@
+// import requirements
 var cheerio = require('cheerio')
 var Q = require('q');
 var http = require('follow-redirects').http;
+
+// extend Q prototype for map
 Q.map = function map (arr, iterator) {
   // execute the func for each element in the array and collect the results
   var promises = arr.map(function (el) { return iterator(el) })
   return Q.all(promises) // return the group promise
 }
+
+// extend array prototype to remove undefined values
 Array.prototype.clean = function() {
   for (var i = 0; i < this.length; i++) {
     if (this[i] === undefined) {         
@@ -16,6 +21,8 @@ Array.prototype.clean = function() {
   return this;
 };
 
+
+// promise for http request
 function httpRequest(url) {
   return Q.Promise(function(resolve, reject) {
     http.get(url, function(res) {
@@ -34,6 +41,8 @@ function httpRequest(url) {
     }); 
   })
 }
+
+// Promise to get a list of all sessions
 function getSessions() {
   return httpRequest("http://web.csulb.edu/depts/enrollment/registration/class_schedule/").then(function(value) {
     return Q.Promise(function (resolve) {
@@ -55,6 +64,8 @@ function getSessions() {
     })
   })
 }
+
+// Promise to get a list of all departments for a session
 function getDepartmentsForSessionURL(sessionURL) {
   return httpRequest(sessionURL).then(function(value) {
     var deferred = Q.defer();
@@ -78,6 +89,7 @@ function getDepartmentsForSessionURL(sessionURL) {
   });
 }
 
+// Promise to get a list of all courses in a department
 function getCoursesForDepartmentURL(departmentURL) {
     return httpRequest(departmentURL).then(function(value) {
     var deferred = Q.defer();
@@ -124,13 +136,9 @@ function getCoursesForDepartmentURL(departmentURL) {
   });
 }
 
+
+// execute code for testing.
 getSessions()
-  /*.then(function(sessions) {
-    console.log(sessions);
-    console.log("...")
-    var mapped =  Q.map(sessions, getDepartments);
-    return mapped;
-  })*/
   .then(function(sessions) {
     return getDepartmentsForSessionURL(sessions[0].url)
   })
