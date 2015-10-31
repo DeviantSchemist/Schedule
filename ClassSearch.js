@@ -3,14 +3,7 @@ var cheerio = require('cheerio');
 var Q = require('q');
 var http = require('follow-redirects').http;
 
-// extend Q prototype for map
 
-module.exports = {
-  httpRead: httpRead,
-  getSessions: getSessions,
-  getDepartmentsForSessionURL:getDepartmentsForSessionURL,
-  getCoursesForDepartmentURL:getCoursesForDepartmentURL
-}
 
 /**
  * @param  {Array}      arr
@@ -166,16 +159,29 @@ function getCoursesForDepartmentURL(departmentURL) {
   });
 }
 
+function doSomething(arguments, callback) {
+  callback(answer);
+}
+
+
 if(!module.parent) {
   // execute code for testing.
   getSessions()
     .then(function(sessions) {
+     // console.log(sessions[0])
       return getDepartmentsForSessionURL(sessions[0].url)
     })
     .then(function(departments) {
+    //  console.log(departments[0])
       return getCoursesForDepartmentURL(departments[0].url)
     })
     .then(function(courses) {
       console.log(courses[0])
     })
 }
+module.exports = {
+  httpRead: httpRead,
+  getSessions: getSessions,
+  getDepartmentsForSessionURL:getDepartmentsForSessionURL,
+  getCoursesForDepartmentURL:getCoursesForDepartmentURL
+};
