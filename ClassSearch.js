@@ -150,40 +150,7 @@ function getCoursesForDepartmentURL(departmentURL) {
         var classNumber = $(sectionTable[j]).find("td").eq(0).text()
         var type =  $(sectionTable[j]).find("td").eq(2).text()
         var days = $(sectionTable[j]).find("td").eq(3).text()
-        var time = $(sectionTable[j]).find("td").eq(4).text().split("-")
-        console.log(time);
-        var startTime = undefined;
-        var endTime = undefined;
-        if(time.length > 1) {
-          // generate time as number 
-          var startTimeString = time[0];
-          var endTimeString = time[1];
-          var endsInPM = false;
-          console.log(endTimeString)
-          if(endTimeString.endsWith("PM")) {
-
-            console.log("pm: "+endTimeString);
-            endsInPM = true;
-          } else {
-            console.log("am: "+endTimeString)
-          }
-          var startsInPM = endsInPM;
-          endTimeString = endTimeString.substring(0, endTimeString.length-2).trim();
-
-          var endTime = timeStringToMinutes(endTimeString);
-          var startTime = timeStringToMinutes(startTimeString);
-
-          if(startTime > endTime) {
-            startsInPM = !startsInPM;
-          }
-          var pmShift = 12*60;
-          if(startsInPM) {
-            startTime = startTime + pmShift;
-          }
-          if(endsInPM) {
-            endTime = endTime + pmShift;
-          }
-        }
+        var timeRange = $(sectionTable[j]).find("td").eq(4).text()
         var open = $(sectionTable[j]).find(".dot").length > 0;
         var location = $(sectionTable[j]).find("td").eq(6).text()
         var instructor = $(sectionTable[j]).find("td").eq(7).text()
@@ -192,8 +159,7 @@ function getCoursesForDepartmentURL(departmentURL) {
           "classNumber" : classNumber,
           "type" : type,
           "days" : days,
-          "startTime" : startTime, //TODO: Convert this to a 24 hour date instead of string
-          "endTime" : endTime, // with no concept of am/pm in the start time :(
+          "timeRange": timeRange,
           "open" : open,
           "location" : location,
           "instructor" : instructor
@@ -281,6 +247,41 @@ function Section(data) {
       this[key] = data[key];
     }
   }
+  var time = this.timeRange.split("-")
+  var startTime = undefined;
+  var endTime = undefined;
+  if(time.length > 1) {
+    // generate time as number 
+    var startTimeString = time[0];
+    var endTimeString = time[1];
+    var endsInPM = false;
+    console.log(endTimeString)
+    if(endTimeString.endsWith("PM")) {
+
+      console.log("pm: "+endTimeString);
+      endsInPM = true;
+    } else {
+      console.log("am: "+endTimeString)
+    }
+    var startsInPM = endsInPM;
+    endTimeString = endTimeString.substring(0, endTimeString.length-2).trim();
+
+    var endTime = timeStringToMinutes(endTimeString);
+    var startTime = timeStringToMinutes(startTimeString);
+
+    if(startTime > endTime) {
+      startsInPM = !startsInPM;
+    }
+    var pmShift = 12*60;
+    if(startsInPM) {
+      startTime = startTime + pmShift;
+    }
+    if(endsInPM) {
+      endTime = endTime + pmShift;
+    }
+  }
+  this.startTime = startTime;
+  this.endTime = endTime;
 }
 Section.prototype.getStartTimeString = function() {
   return minutesToTimeString(this.startTime);
