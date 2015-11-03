@@ -242,12 +242,17 @@ Course.prototype.getNumberOfSections = function() {
   return this.sections.length;
 }
 function Section(data) {
-  for(var key in data) {
-    if(data.hasOwnProperty(key)) {
-      this[key] = data[key];
-    }
-  }
-  var time = this.timeRange.split("-")
+  this.sectionNumber = data.sectionNumber;
+  this.classNumber = data.classNumber;
+  this.type = data.type;
+  this.days = data.days;
+  this.open = data.open;
+  this.location = data.location;
+  this.instructor = data.instructor;
+  this.startTime = data.startTime;
+  this.endTime = data.endTime;
+
+  var time = data.timeRange.split("-")
   var startTime = undefined;
   var endTime = undefined;
   if(time.length > 1) {
