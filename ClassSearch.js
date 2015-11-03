@@ -141,7 +141,6 @@ function getCoursesForDepartmentURL(departmentURL) {
       var units = $(courses[i]).find(".units").text().split(" ")[0];
       var sectionTable = $(courses[i]).find(".sectionTable tr");
       var sections = sectionTable.map(function(j) {
-        console.log('start')
         if(j === 0) {
           // first row is header information.
           return undefined; 
@@ -260,13 +259,8 @@ function Section(data) {
     var startTimeString = time[0];
     var endTimeString = time[1];
     var endsInPM = false;
-    console.log(endTimeString)
     if(endTimeString.endsWith("PM")) {
-
-      console.log("pm: "+endTimeString);
       endsInPM = true;
-    } else {
-      console.log("am: "+endTimeString)
     }
     var startsInPM = endsInPM;
     endTimeString = endTimeString.substring(0, endTimeString.length-2).trim();
@@ -300,8 +294,27 @@ Course.prototype.matches = function(searchQuery) {
 
 
 var session = undefined;
+function XOR(a, b) {
+    return ( a || b ) && !( a && b );
+}
 if(!module.parent) {
+
   // execute code for testing.
+  // Test time
+  // f
+  var noon = (60*12);
+  for(var hour = 0; hour < 24; hour++) {
+    for(var minute = 0; minute < 60; minute++) {
+      var isPM = hour>=12;
+      var time = hour*60+minute;
+      var timeString = minutesToTimeString(time);
+      var backToTime = timeStringToMinutes(timeString);
+
+      if(time%(60*12) != backToTime || XOR(isPM, time>=noon) ) {
+        throw "ERROR: time conversion failed for "+time;
+      }
+    }
+}
   getSessions()
     .then(function(sessions) {
       session = sessions[0];
