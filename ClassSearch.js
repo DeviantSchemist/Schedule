@@ -99,61 +99,28 @@ function getDepartmentsForSessionURL(sessionURL) {
   });
 }
 
-function Session(data) {
-  for(var key in data) {
-    if(data.hasOwnProperty(key)) {
-      this[key] = data[key];
-    }
+function timeStringToMinutes(timeString) {
+  var parts = timeString.split(":");
+  var hours = parseInt(parts[0]);
+  if(hours === 12) {
+    hours = 0;
   }
+  var minutes = parseInt(parts[1] || "0");
+  return (hours * 60) + minutes;
 }
-Session.prototype.getDepartments = function() {
-  var session = this;
-  return getDepartmentsForSessionURL(this.url).then(function(result) {
-    session.courses = result;
-    return session.courses;
-  });
-}
-
-
-
-function Department(data) {
-  for(var key in data) {
-    if(data.hasOwnProperty(key)) {
-      this[key] = data[key];
-    }
+function minutesToTimeString(minutes) {
+  if(minutes === undefined) {
+    return "N/A";
   }
-}
-
-Department.prototype.getCourses = function() {
-  var dept = this;
-  return getCoursesForDepartmentURL(this.url).then(function(result) {
-    dept.courses = result;
-    return dept.courses;
-  })
-}
-
-function Course(data) {
-  for(var key in data) {
-    if(data.hasOwnProperty(key)) {
-      this[key] = data[key];
-    }
+  var min = minutes % 60;
+  var hour24 = Math.floor(minutes / 60);
+  var hour = hour24 % 12;
+  var suffix = hour24 >= 12 ? "pm" : "am";
+  if(hour === 0) {
+    hour = 12;
   }
+  return hour+":"+((min < 10 ? "0" : "")+min)+suffix;
 }
-Course.prototype.getNumberOfSections = function() {
-  return this.sections.length;
-}
-function Section(data) {
-  for(var key in data) {
-    if(data.hasOwnProperty(key)) {
-      this[key] = data[key];
-    }
-  }
-}
-Course.prototype.matches = function(searchQuery) {
-  return false;
-}
-
-
 
 /**
  * Promise to get a list of courses for a department from
@@ -174,18 +141,52 @@ function getCoursesForDepartmentURL(departmentURL) {
       var units = $(courses[i]).find(".units").text().split(" ")[0];
       var sectionTable = $(courses[i]).find(".sectionTable tr");
       var sections = sectionTable.map(function(j) {
-        if(j === 0) return undefined;
+        console.log('start')
+        if(j === 0) {
+          // first row is header information.
+          return undefined; 
+        }
         var sectionNumber = $(sectionTable[j]).find("th").eq(0).text()
         var classNumber = $(sectionTable[j]).find("td").eq(0).text()
         var type =  $(sectionTable[j]).find("td").eq(2).text()
         var days = $(sectionTable[j]).find("td").eq(3).text()
         var time = $(sectionTable[j]).find("td").eq(4).text().split("-")
-        var startTime = time[0];
-        var endTime = time[1];
+        console.log(time);
+        var startTime = undefined;
+        var endTime = undefined;
+        if(time.length > 1) {
+          // generate time as number 
+          var startTimeString = time[0];
+          var endTimeString = time[1];
+          var endsInPM = false;
+          console.log(endTimeString)
+          if(endTimeString.endsWith("PM")) {
+
+            console.log("pm: "+endTimeString);
+            endsInPM = true;
+          } else {
+            console.log("am: "+endTimeString)
+          }
+          var startsInPM = endsInPM;
+          endTimeString = endTimeString.substring(0, endTimeString.length-2).trim();
+
+          var endTime = timeStringToMinutes(endTimeString);
+          var startTime = timeStringToMinutes(startTimeString);
+
+          if(startTime > endTime) {
+            startsInPM = !startsInPM;
+          }
+          var pmShift = 12*60;
+          if(startsInPM) {
+            startTime = startTime + pmShift;
+          }
+          if(endsInPM) {
+            endTime = endTime + pmShift;
+          }
+        }
         var open = $(sectionTable[j]).find(".dot").length > 0;
         var location = $(sectionTable[j]).find("td").eq(6).text()
         var instructor = $(sectionTable[j]).find("td").eq(7).text()
-
         return new Section({
           "sectionNumber" : sectionNumber,
           "classNumber" : classNumber,
@@ -210,9 +211,87 @@ function getCoursesForDepartmentURL(departmentURL) {
   });
 }
 
-function doSomething(arguments, callback) {
-  callback(answer);
+
+
+
+function Session(data) {
+  this.name = data.name;
+  this.url = data.url;
+  /*
+  for(var key in data) {
+    if(data.hasOwnProperty(key)) {
+      this[key] = data[key];
+    }
+  }*/
 }
+
+Session.prototype.getDepartments = function(force) {
+  if(this.departments && !force) {
+    return this.departments;
+  }
+  var session = this;
+
+  return getDepartmentsForSessionURL(this.url).then(function(result) {
+    session.departments = result;
+    return session.departments;
+  });
+}
+
+
+
+function Department(data) {
+  this.name = data.name;
+  this.url = data.url;
+/*  for(var key in data) {
+    if(data.hasOwnProperty(key)) {
+      this[key] = data[key];
+    }
+  }*/
+}
+
+Department.prototype.getCourses = function(force) {
+  if(this.courses && !force) {
+    return this.courses;
+  }
+  var dept = this;
+  return getCoursesForDepartmentURL(this.url).then(function(result) {
+    dept.courses = result;
+    return dept.courses;
+  })
+}
+
+function Course(data) {
+  this.code = data.code;
+  this.title = data.title;
+  this.units = data.units;
+  this.sections = data.sections;
+  /*
+  for(var key in data) {
+    if(data.hasOwnProperty(key)) {
+      this[key] = data[key];
+    }
+  }*/
+}
+Course.prototype.getNumberOfSections = function() {
+  return this.sections.length;
+}
+function Section(data) {
+  for(var key in data) {
+    if(data.hasOwnProperty(key)) {
+      this[key] = data[key];
+    }
+  }
+}
+Section.prototype.getStartTimeString = function() {
+  return minutesToTimeString(this.startTime);
+}
+Section.prototype.getEndTimeString = function() {
+  return minutesToTimeString(this.endTime);
+}
+Course.prototype.matches = function(searchQuery) {
+  return false;
+}
+
 
 var session = undefined;
 if(!module.parent) {
@@ -223,13 +302,29 @@ if(!module.parent) {
       return sessions[0].getDepartments();
     })
     .then(function(departments) {
+      console.log("getting courses")
       return departments[0].getCourses();
     })
     .then(function(courses) {
       console.log(courses[0])
+      for(var i = 0; i < 100000; i++) {
+        session.getDepartments() // make sure cache works
+      }
       console.log("course has "+courses[0].getNumberOfSections()+" sections.")
-      console.log(session);
+      console.log(courses[0].sections[9].getEndTimeString())
     })
+/*var allSessions = undefined;
+getSessions().then(function(sessions) {
+  allSessions = sessions;
+  return sessions[0].getDepartments();
+}).then(function(departments) {
+  return Q.map(departments, function(department) {
+    console.log("Getting info on department: "+department.name)
+    return department.getCourses()
+  }).then(function(allDepartments) {
+    console.log(JSON.stringify(allSessions));
+  })
+})*/
 }
 module.exports = {
   httpRead: httpRead,
