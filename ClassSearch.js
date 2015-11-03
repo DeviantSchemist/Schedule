@@ -40,7 +40,6 @@ function httpRead(url) {
       });
       res.on('end', function() {
         resolve(body);
-       // console.log("resolved");
       });
     }).on('error', function(e) {
       reject(e);
@@ -59,15 +58,13 @@ function getSessions() {
     return Q.Promise(function (resolve) {
       var $ = cheerio.load(value.toString());
       var terms = $(".term")
-      //console.log(terms);
-      //console.log("^terms")
       var links = terms.map(function() {
         var link = $(this).find("a");
 
-        return { 
+        return new Session({ 
           "name" : link.text().trim(),
           "url"  : link.attr("href")
-        };
+        });
       }).get();
       resolve(links);
     })
@@ -92,17 +89,70 @@ function getDepartmentsForSessionURL(sessionURL) {
       var splitter = text.lastIndexOf("(");
       var name = text.substring(0,splitter).trim();
       var code = text.substring(splitter+1).replace(")","");
-      return {
+      return new Department({
         "name" : name,
         "code" : code,
         "url" : urlPart+$(links[i]).attr("href")
-      };
+      });
     }).get());
     return deferred.promise;
   });
 }
 
-// Promise to get a list of all courses in a department
+function Session(data) {
+  for(var key in data) {
+    if(data.hasOwnProperty(key)) {
+      this[key] = data[key];
+    }
+  }
+}
+Session.prototype.getDepartments = function() {
+  var session = this;
+  return getDepartmentsForSessionURL(this.url).then(function(result) {
+    session.courses = result;
+    return session.courses;
+  });
+}
+
+
+
+function Department(data) {
+  for(var key in data) {
+    if(data.hasOwnProperty(key)) {
+      this[key] = data[key];
+    }
+  }
+}
+
+Department.prototype.getCourses = function() {
+  var dept = this;
+  return getCoursesForDepartmentURL(this.url).then(function(result) {
+    dept.courses = result;
+    return dept.courses;
+  })
+}
+
+function Course(data) {
+  for(var key in data) {
+    if(data.hasOwnProperty(key)) {
+      this[key] = data[key];
+    }
+  }
+}
+Course.prototype.getNumberOfSections = function() {
+  return this.sections.length;
+}
+function Section(data) {
+  for(var key in data) {
+    if(data.hasOwnProperty(key)) {
+      this[key] = data[key];
+    }
+  }
+}
+Course.prototype.matches = function(searchQuery) {
+  return false;
+}
+
 
 
 /**
@@ -135,7 +185,8 @@ function getCoursesForDepartmentURL(departmentURL) {
         var open = $(sectionTable[j]).find(".dot").length > 0;
         var location = $(sectionTable[j]).find("td").eq(6).text()
         var instructor = $(sectionTable[j]).find("td").eq(7).text()
-        return {
+
+        return new Section({
           "sectionNumber" : sectionNumber,
           "classNumber" : classNumber,
           "type" : type,
@@ -145,14 +196,14 @@ function getCoursesForDepartmentURL(departmentURL) {
           "open" : open,
           "location" : location,
           "instructor" : instructor
-        }
-      }).get().clean();
-      return {
+        });
+      }).get().clean(); // end of map
+      return new Course({
         "code"  : code,
         "title" : title,
         "units" : units,
         "sections" : sections
-      };
+      });
 
     }).get());
     return deferred.promise;
@@ -163,20 +214,21 @@ function doSomething(arguments, callback) {
   callback(answer);
 }
 
-
+var session = undefined;
 if(!module.parent) {
   // execute code for testing.
   getSessions()
     .then(function(sessions) {
-     // console.log(sessions[0])
-      return getDepartmentsForSessionURL(sessions[0].url)
+      session = sessions[0];
+      return sessions[0].getDepartments();
     })
     .then(function(departments) {
-    //  console.log(departments[0])
-      return getCoursesForDepartmentURL(departments[0].url)
+      return departments[0].getCourses();
     })
     .then(function(courses) {
       console.log(courses[0])
+      console.log("course has "+courses[0].getNumberOfSections()+" sections.")
+      console.log(session);
     })
 }
 module.exports = {
