@@ -274,7 +274,6 @@ function Section(data) {
   if(!hasValidDOW) {
     this.daysOfWeek = ["Unknown"];
   }
-  this.days = data.days;
   this.open = data.open;
   this.location = data.location;
   this.instructor = data.instructor;

@@ -19,7 +19,6 @@
                 "Monday",
                 "Wednesday"
               ],
-              "days": "MW",
               "open": true,
               "location": "CBA-139A",
               "instructor": "Lacey J",
