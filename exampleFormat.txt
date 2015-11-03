@@ -1,12 +1,12 @@
-{
+{ // session object begins here
   "name": "Spring 2016",
   "url": "http://www.csulb.edu/depts/enrollment/registration/class_schedule/Spring_2016/By_Subject/",
   "departments": [
-    {
+    { // department object begins here
       "name": "Accountancy",
       "url": "http://www.csulb.edu/depts/enrollment/registration/class_schedule/Spring_2016/By_Subject/ACCT.html",
       "courses": [
-        {
+        { // course object begins here
           "code": "ACCT 201",
           "title": "ELEM FINANCIAL ACCOUNTING",
           "units": "3",
@@ -27,8 +27,8 @@
               "endTime": 555
             }
           ]
-        }
+        } // course object ends here
       ]
-    }
+    } // department object ends here
   ]
-}
+} // session object ends here
