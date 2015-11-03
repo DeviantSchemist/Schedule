@@ -1,0 +1,34 @@
+{
+  "name": "Spring 2016",
+  "url": "http://www.csulb.edu/depts/enrollment/registration/class_schedule/Spring_2016/By_Subject/",
+  "departments": [
+    {
+      "name": "Accountancy",
+      "url": "http://www.csulb.edu/depts/enrollment/registration/class_schedule/Spring_2016/By_Subject/ACCT.html",
+      "courses": [
+        {
+          "code": "ACCT 201",
+          "title": "ELEM FINANCIAL ACCOUNTING",
+          "units": "3",
+          "sections": [
+            {
+              "sectionNumber": "01",
+              "classNumber": "1009",
+              "type": "SEM",
+              "daysOfWeek": [
+                "Monday",
+                "Wednesday"
+              ],
+              "days": "MW",
+              "open": true,
+              "location": "CBA-139A",
+              "instructor": "Lacey J",
+              "startTime": 480,
+              "endTime": 555
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

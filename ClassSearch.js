@@ -5,6 +5,7 @@ var http = require('follow-redirects').http;
 
 
 
+
 /**
  * @param  {Array}      arr
  * @param  {function}   iterator 
@@ -182,23 +183,31 @@ function getCoursesForDepartmentURL(departmentURL) {
 function Session(data) {
   this.name = data.name;
   this.url = data.url;
-  /*
-  for(var key in data) {
-    if(data.hasOwnProperty(key)) {
-      this[key] = data[key];
-    }
-  }*/
 }
 
 Session.prototype.getDepartments = function(force) {
-  if(this.departments && !force) {
-    return this.departments;
-  }
   var session = this;
+  if(this.departments && !force) {
+    return new Q.promise(function(resolve) {resolve(session.departments)});
+  }
 
   return getDepartmentsForSessionURL(this.url).then(function(result) {
     session.departments = result;
     return session.departments;
+  });
+}
+Session.prototype.getAllCourses = function(force) {
+  var session = this;
+  var allCourses = [];
+  return this.getDepartments(force).then(function(departments) {
+    return Q.map(departments, function(department) {
+      return department.getCourses(force).then(function(courses) {
+        allCourses.push.apply(allCourses, courses);
+        return courses;
+      })
+    }).then(function() {
+      return allCourses;
+    })
   });
 }
 
@@ -215,10 +224,13 @@ function Department(data) {
 }
 
 Department.prototype.getCourses = function(force) {
+    var dept = this;
+
+
   if(this.courses && !force) {
-    return this.courses;
+    return new Q.promise(function(resolve) {resolve(dept.courses)});
+
   }
-  var dept = this;
   return getCoursesForDepartmentURL(this.url).then(function(result) {
     dept.courses = result;
     return dept.courses;
@@ -244,6 +256,24 @@ function Section(data) {
   this.sectionNumber = data.sectionNumber;
   this.classNumber = data.classNumber;
   this.type = data.type;
+  this.daysOfWeek = [];
+  var days = data.days.split(/(?=[A-Z])/);
+  var hasValidDOW = days.length > 0;
+  for(var i = 0; i < days.length; i++) {
+    switch(days[i]) {
+      case "M":  this.daysOfWeek.push("Monday"); break;
+      case "Tu": this.daysOfWeek.push("Tuesday"); break;
+      case "W":  this.daysOfWeek.push("Wednesday"); break;
+      case "Th": this.daysOfWeek.push("Thursday"); break;
+      case "F":  this.daysOfWeek.push("Friday"); break;
+      case "Sa": this.daysOfWeek.push("Saturday"); break;
+      case "Su": this.daysOfWeek.push("Sunday"); break;
+      default:   hasValidDOW = false; break; // catch other strings...
+    }
+  }
+  if(!hasValidDOW) {
+    this.daysOfWeek = ["Unknown"];
+  }
   this.days = data.days;
   this.open = data.open;
   this.location = data.location;
@@ -288,6 +318,9 @@ Section.prototype.getStartTimeString = function() {
 Section.prototype.getEndTimeString = function() {
   return minutesToTimeString(this.endTime);
 }
+Section.prototype.getDaysOfWeek = function() {
+
+}
 Course.prototype.matches = function(searchQuery) {
   return false;
 }
@@ -310,11 +343,11 @@ if(!module.parent) {
       var timeString = minutesToTimeString(time);
       var backToTime = timeStringToMinutes(timeString);
 
-      if(time%(60*12) != backToTime || XOR(isPM, time>=noon) ) {
-        throw "ERROR: time conversion failed for "+time;
-      }
+      console.assert(time%(60*12) == backToTime,"Time conversion failed for "+time+" != "+backToTime);
+      console.assert(isPM == (time>=noon), "AM/PM mismatch")
     }
 }
+var session;
   getSessions()
     .then(function(sessions) {
       session = sessions[0];
@@ -325,25 +358,30 @@ if(!module.parent) {
       return departments[0].getCourses();
     })
     .then(function(courses) {
-      console.log(courses[0])
+      console.log(JSON.stringify(session, null, "  "))
       for(var i = 0; i < 100000; i++) {
         session.getDepartments() // make sure cache works
       }
       console.log("course has "+courses[0].getNumberOfSections()+" sections.")
-      console.log(courses[0].sections[9].getEndTimeString())
+      console.log(courses[0].sections[9].daysOfWeek)
     })
-/*var allSessions = undefined;
-getSessions().then(function(sessions) {
-  allSessions = sessions;
-  return sessions[0].getDepartments();
-}).then(function(departments) {
-  return Q.map(departments, function(department) {
-    console.log("Getting info on department: "+department.name)
-    return department.getCourses()
-  }).then(function(allDepartments) {
-    console.log(JSON.stringify(allSessions));
-  })
-})*/
+  // var allSessions;
+  // getSessions().then(function(sessions) {
+  //   allSessions = sessions;
+  //   return sessions[0].getAllCourses();
+  // }).then(function(result) {
+  //   var startTime = new Date();
+  //   for(var i = 0; i < 100; i++) {
+  //     (function(i) {
+  //       allSessions[0].getAllCourses().then(function() {
+  //         console.log(i);
+  //       });
+  //     })(i);
+  //   }
+  //   assert((new Date() - startTime)/1000 < 1, "Data is no longer cached :(");
+
+  // });
+
 }
 module.exports = {
   httpRead: httpRead,
