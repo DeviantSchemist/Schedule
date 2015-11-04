@@ -2,7 +2,7 @@
 var cheerio = require('cheerio');
 var Q = require('q');
 var http = require('follow-redirects').http;
-
+require("console.table")
 
 
 
@@ -261,14 +261,14 @@ function Section(data) {
   var hasValidDOW = days.length > 0;
   for(var i = 0; i < days.length; i++) {
     switch(days[i]) {
-      case "M":  this.daysOfWeek.push("Monday"); break;
-      case "Tu": this.daysOfWeek.push("Tuesday"); break;
+      case "M":  this.daysOfWeek.push("Monday");    break;
+      case "Tu": this.daysOfWeek.push("Tuesday");   break;
       case "W":  this.daysOfWeek.push("Wednesday"); break;
-      case "Th": this.daysOfWeek.push("Thursday"); break;
-      case "F":  this.daysOfWeek.push("Friday"); break;
-      case "Sa": this.daysOfWeek.push("Saturday"); break;
-      case "Su": this.daysOfWeek.push("Sunday"); break;
-      default:   hasValidDOW = false; break; // catch other strings...
+      case "Th": this.daysOfWeek.push("Thursday");  break;
+      case "F":  this.daysOfWeek.push("Friday");    break;
+      case "Sa": this.daysOfWeek.push("Saturday");  break;
+      case "Su": this.daysOfWeek.push("Sunday");    break;
+      default:   hasValidDOW = false;               break; // catch other strings...
     }
   }
   if(!hasValidDOW) {
@@ -353,16 +353,15 @@ var session;
       return sessions[0].getDepartments();
     })
     .then(function(departments) {
-      console.log("getting courses")
       return departments[0].getCourses();
     })
     .then(function(courses) {
-      console.log(JSON.stringify(session, null, "  "))
+      //console.log(JSON.stringify(session, null, "  "))
       for(var i = 0; i < 100000; i++) {
         session.getDepartments() // make sure cache works
       }
-      console.log("course has "+courses[0].getNumberOfSections()+" sections.")
-      console.log(courses[0].sections[9].daysOfWeek)
+      // console.log("course has "+courses[0].getNumberOfSections()+" sections.")
+      console.log(courses[0])
     })
   // var allSessions;
   // getSessions().then(function(sessions) {
