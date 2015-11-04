@@ -1,0 +1,13 @@
+<Page xmlns="http://www.nativescript.org/tns.xsd" loaded="onPageLoaded">
+	<page.actionBar>
+		<action-bar title="Schedule" />
+	</page.actionBar>
+        <ListView id="listview" items="{{ myItems }}" itemTap="onTap">
+            <ListView.itemTemplate>
+                <StackLayout orientation="horizontal">
+                <Image src="{{ src }}" stretch="aspectFit" />
+                <Label text="{{ title }}" />
+                </StackLayout>
+            </ListView.itemTemplate>
+        </ListView>
+</Page>

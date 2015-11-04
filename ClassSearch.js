@@ -57,14 +57,18 @@ function httpRead(url) {
 function getSessions() {
   return httpRead("http://web.csulb.edu/depts/enrollment/registration/class_schedule/").then(function(value) {
     return Q.Promise(function (resolve) {
+
       var $ = cheerio.load(value.toString());
       var terms = $(".term")
       var links = terms.map(function() {
         var link = $(this).find("a");
+        var image = $(link).find("img");
+        var iconLink = image.attr("src");
 
         return new Session({ 
           "name" : link.text().trim(),
-          "url"  : link.attr("href")
+          "url"  : link.attr("href"),
+          "icon" : "http://web.csulb.edu/depts/enrollment/registration/class_schedule/"+iconLink
         });
       }).get();
       resolve(links);
@@ -183,6 +187,7 @@ function getCoursesForDepartmentURL(departmentURL) {
 function Session(data) {
   this.name = data.name;
   this.url = data.url;
+  this.icon = data.icon;
 }
 
 Session.prototype.getDepartments = function(force) {
@@ -288,7 +293,7 @@ function Section(data) {
     var startTimeString = time[0];
     var endTimeString = time[1];
     var endsInPM = false;
-    if(endTimeString.endsWith("PM")) {
+    if(endTimeString.indexOf("PM") == endTimeString.length-2) {
       endsInPM = true;
     }
     var startsInPM = endsInPM;
@@ -381,6 +386,8 @@ var session;
   // });
 
 }
+
+
 module.exports = {
   httpRead: httpRead,
   getSessions: getSessions,
