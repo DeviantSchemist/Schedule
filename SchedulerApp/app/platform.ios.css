@@ -14,3 +14,6 @@ TextField {
 .link {
     border-width: 0;
 }
+Page {
+    background-color: #EBEBF1;
+}

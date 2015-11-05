@@ -1,0 +1,17 @@
+<Page xmlns="http://www.nativescript.org/tns.xsd" loaded="onPageLoaded" navigatedTo="navigatedTo">
+	<page.actionBar>
+		<ActionBar title="{{sessionName}}">
+          <ActionBar.actionItems>
+            <ActionItem text="Cart" ios.position="right"/>
+          </ActionBar.actionItems>
+        </ActionBar>
+	</page.actionBar>
+        <ListView id="listview" items="{{ myItems }}" itemTap="onTap">
+            <ListView.itemTemplate>
+                <GridLayout columns="*,auto" rows="44">
+                    <Label col="0" text="{{ name }}" />
+                    <Label col="1" text="{{ code }}" cssClass="classCode" />
+                </GridLayout>
+            </ListView.itemTemplate>
+        </ListView>
+</Page>

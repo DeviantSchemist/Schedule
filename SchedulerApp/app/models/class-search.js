@@ -1,82 +1,45 @@
-// // import requirements
-var cheerio = require('cheerio');
-var Q = require('q');
-var http = require('follow-redirects').http;
+/*jslint node: true */
+"use strict";
 
-/**
- * @param  {Array}      arr
- * @param  {function}   iterator 
- * @return {Promise}
- */
-Q.map = function map (arr, iterator) {
+var Q = require('q');
+
+var Qmap = function map(arr, iterator) {
   return Q.all(arr.map(function (el) { return iterator(el) }));
 }
-
-// extend array prototype to remove undefined values
-Array.prototype.clean = function() {
-  for (var i = 0; i < this.length; i++) {
-    if (this[i] === undefined) {         
-      this.splice(i, 1);
-      i--;
-    }
-  }
-  return this;
-};
-var httpRead;
-if(!http) {
-  httpRead = fetch;
-} else {
-  /**
-   * Generates a promise to retrieve the contents of a website
-   * @param  {String} url
-   * @return {Promise}
-   */
-  var httpRead = function(url) {
-    return Q.Promise(function(resolve, reject) {
-      http.get(url, function(res) {
-        var body = '';
-        res.on('data', function(chunk) {
-          body += chunk;
-        });
-        res.on('end', function() {
-          resolve(body);
-        });
-      }).on('error', function(e) {
-        reject(e);
-      }).on('error', function(e) {
-        reject(e);
-      }); 
-    })
-  }
+function cleanString(str) {
+  return str.replace(/\&amp\;/igm, "&");
 }
+
+
 
 /**
  * Generates a promise to retrieve all sessions from the CSULB website
  * @return {Promise}
  */
 function getSessions() {
-  return httpRead("http://web.csulb.edu/depts/enrollment/registration/class_schedule/").then(function(value) {
+  return fetch("http://web.csulb.edu/depts/enrollment/registration/class_schedule/")
+  .then(function(t){return t.text();})
+  .then(function(value) {
     return Q.Promise(function (resolve) {
-      var terms = value.toString().match(/\<div class\=\"term\"[\s\S]*?\<\/div\>/igm);
-
+      var terms = value.match(/\<div class\=\"term\"[\s\S]*?\<\/div\>/igm);
       var links = terms.map(function(term,index) {
         var linkString = term.match(/\<a href\=\"(.*?)\">/igm)[0];
         var link = linkString.substring(9,linkString.length-2)
         var imageString = term.match(/\<img\s{0,}src\=\"(.*?)\"/igm)[0];
 
-        var iconLink = imageString.substring(imageString.indexOf("\""), imageString.length-1)
+        var iconLink = imageString.substring(imageString.indexOf("\"")+1, imageString.length-1)
         var name = term.match(/\<span\>[\s\S]*?\<\/span\>/igm)[0]
 
         name = name.replace(/<[^>]*>/igm, "").trim()
         return new Session({ 
-          "name" : name,
+          "name" : cleanString(name),
           "url"  : link,
-          "icon" : "http://web.csulb.edu/depts/enrollment/registration/class_schedule/"+iconLink
+          "icon" : "https://web.csulb.edu"+iconLink
         });
       });
       resolve(links);
-    })
-  })
+    });
+  });
 }
 
 
@@ -88,19 +51,21 @@ function getSessions() {
  */
 function getDepartmentsForSessionURL(sessionURL) {
   var urlPart = sessionURL.substring(0, sessionURL.lastIndexOf("/")+1)
-  return httpRead(sessionURL).then(function(value) {
+  return fetch(sessionURL)
+  .then(function(t){return t.text();})
+  .then(function(value) {
     var deferred = Q.defer();
-    var linksSection = value.toString().match(/\<div class=\"indexlist\"\>[\s\S]*?\<!-- end/igm)
+    var linksSection = value.match(/\<div class=\"indexlist\"\>[\s\S]*?\<!-- end/igm)
     if(linksSection && linksSection[0]) {
       deferred.resolve(linksSection[0].match(/<a href\=\"[\s\S]*?\<\/a>/igm).map(function(link, index) {
         var text = link.substring(link.indexOf(">")+1, link.lastIndexOf("<"));
         var splitter = text.lastIndexOf("(");
-        var name = text.substring(0,splitter).trim();
-        var code = text.substring(splitter+1).replace(")","");
+        var name = text.substring(0,splitter).replace(/\&nbsp\;/igm, "").trim();
+        var code = text.substring(splitter+1).replace(/\)/igm,"");
         var linkString = link.match(/\<a href\=\"(.*?)\">/igm)[0];
         var url = linkString.substring(9,linkString.length-2)
         return new Department({
-          "name" : name,
+          "name" : cleanString(name),
           "code" : code,
           "url" : urlPart+url
         });
@@ -144,9 +109,11 @@ function minutesToTimeString(minutes) {
  * @return {Promise}
  */
 function getCoursesForDepartmentURL(departmentURL) {
-    return httpRead(departmentURL).then(function(value) {
+  return fetch(departmentURL)
+  .then(function(t){return t.text();})
+  .then(function(value) {
     var deferred = Q.defer();
-    var courseBlocks = value.toString().match(/\<div class=\"courseBlock\"\>[\s\S]*?\<!-- end CourseBlock/igm)
+    var courseBlocks = value.match(/\<div class=\"courseBlock\"\>[\s\S]*?\<!-- end CourseBlock/igm)
 
     deferred.resolve(courseBlocks.map(function(courseBlock, index) {
 
@@ -156,7 +123,12 @@ function getCoursesForDepartmentURL(departmentURL) {
       var title = titleString.substring(titleString.indexOf(">")+1,titleString.lastIndexOf("<"));
       var unitsString = courseBlock.match(/<span class\=\"units\">[\s\S]*?<\/span>/igm)[0];
       var units = unitsString.substring(unitsString.indexOf(">")+1,unitsString.lastIndexOf("<"));
-            var courseRows = courseBlock.match(/<tr>[\s\S]*?<\/tr>/igm).slice(1);
+      var courseRows = courseBlock.match(/<tr>[\s\S]*?<\/tr>/igm);
+      for(var i = 0; i < courseRows.length; i++) {
+        if(courseRows[i].match(/col1Head/igm)) {
+          courseRows.splice(i--,1); // remove all header rows
+        }
+      }
       //console.log(courseRows)
       var sections = courseRows.map(function(row){ 
         var pieces = row.match(/<(td|th)[\s\S]*?>[\s\S]*?<\/(td|th)>/igm) || [];
@@ -186,7 +158,7 @@ function getCoursesForDepartmentURL(departmentURL) {
       });
       return new Course({
         "code"  : code,
-        "title" : title,
+        "title" : cleanString(title),
         "units" : units,
         "sections" : sections
       });
@@ -220,7 +192,7 @@ Session.prototype.getAllCourses = function(force) {
   var session = this;
   var allCourses = [];
   return this.getDepartments(force).then(function(departments) {
-    return Q.map(departments, function(department) {
+    return Qmap(departments, function(department) {
       return department.getCourses(force).then(function(courses) {
         allCourses.push.apply(allCourses, courses);
         return courses;
@@ -236,6 +208,7 @@ Session.prototype.getAllCourses = function(force) {
 function Department(data) {
   this.name = data.name;
   this.url = data.url;
+  this.code = data.code;
 /*  for(var key in data) {
     if(data.hasOwnProperty(key)) {
       this[key] = data[key];
@@ -294,12 +267,13 @@ function Section(data) {
   if(!hasValidDOW) {
     this.daysOfWeek = ["Unknown"];
   }
+  this.dowString = data.days;
   this.open = data.open;
   this.location = data.location;
   this.instructor = data.instructor;
   this.startTime = data.startTime;
   this.endTime = data.endTime;
-
+  this.timeRange = data.timeRange;
   var time = data.timeRange.split("-")
   var startTime = undefined;
   var endTime = undefined;
@@ -337,6 +311,7 @@ Section.prototype.getStartTimeString = function() {
 Section.prototype.getEndTimeString = function() {
   return minutesToTimeString(this.endTime);
 }
+
 Section.prototype.getDaysOfWeek = function() {
 
 }
@@ -349,6 +324,7 @@ var session = undefined;
 function XOR(a, b) {
     return ( a || b ) && !( a && b );
 }
+/*
 if(!module.parent) {
 
   // execute code for testing.
@@ -365,8 +341,8 @@ if(!module.parent) {
       console.assert(time%(60*12) == backToTime,"Time conversion failed for "+time+" != "+backToTime);
       console.assert(isPM == (time>=noon), "AM/PM mismatch")
     }
-}
-var session;
+  }
+  var session;
   getSessions()
     .then(function(sessions) {
       session = sessions[0];
@@ -401,10 +377,9 @@ var session;
   // });
 
 }
-
+*/
 
 module.exports = {
-  httpRead: httpRead,
   getSessions: getSessions,
   getDepartmentsForSessionURL:getDepartmentsForSessionURL,
   getCoursesForDepartmentURL:getCoursesForDepartmentURL

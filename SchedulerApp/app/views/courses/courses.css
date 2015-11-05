@@ -1,0 +1,62 @@
+
+Label {
+	padding-left:10;
+	padding-right:10;
+
+}
+.courseUnits {
+  horizontal-align: right;
+  color:#333333;
+	font-size:11;
+	height:22;
+
+}
+
+.courseCode {
+	font-weight: bold
+	height:22;
+}
+
+.courseTitle {
+	font-size:10;
+}
+.courseHeader {
+	margin-top:10;
+}
+
+.sectionInstructor {
+	height:22;
+	font-weight: bold
+}
+.sectionTimeRange {
+	height:22;
+	font-size:11;
+	color:#333333;
+}
+.sectionDOW {
+	height:22;
+	font-size:11;
+	width:30;
+	color:#333333;
+}
+.sectionList {
+	background-color:#ffffff;
+}
+.borderbottom {
+	background-color:#BCBAC1;
+	margin-left:10;
+}
+.sectionNumber {
+  horizontal-align: center;
+}
+.sectionRating {
+	color:#ffffff;
+	background-color: #43D652;
+  horizontal-align: center;
+  width:50;
+}
+.sectionAdd {
+	color:#ffffff;
+	background-color: #0B61FF;
+	width:50; 
+}

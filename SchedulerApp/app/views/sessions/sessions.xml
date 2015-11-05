@@ -5,8 +5,8 @@
         <ListView id="listview" items="{{ myItems }}" itemTap="onTap">
             <ListView.itemTemplate>
                 <StackLayout orientation="horizontal">
-                <Image src="{{ src }}" stretch="aspectFit" />
-                <Label text="{{ title }}" />
+                <Image src="{{ icon }}" stretch="aspectFit" />
+                <Label text="{{ name }}" />
                 </StackLayout>
             </ListView.itemTemplate>
         </ListView>

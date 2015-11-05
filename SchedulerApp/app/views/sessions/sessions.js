@@ -1,20 +1,27 @@
-
+"use strict";
 
 var observableArray = require("data/observable-array");
 var navigation = require("../../shared/navigation");
-var dept = require("../../models/class-search");
+var classSearch = require("../../models/class-search");
+var allSessions;
 
 function onPageLoaded(args) {
-  //classes.getDepartments().then(console.log);
   var page = args.object;
-  var array = new observableArray.ObservableArray();
 
-  array.push({title: "Title1", src: 'https://web.csulb.edu/depts/enrollment/assets/img/buttonsSM/images/class_sched_spring_2005.jpg'});
-  array.push({title: "Title2", src: 'https://web.csulb.edu/depts/enrollment/assets/img/buttonsSM/images/class_sched_spring_2005.jpg'});
+  classSearch.getSessions().then(function(sessions) {
+    var array = new observableArray.ObservableArray();
+    sessions.forEach(function(session) {
+      array.push(session);
+    });
+    page.bindingContext = {myItems: array};
+    allSessions = array;
 
-  page.bindingContext = {myItems: array};
+  });
+
+  
 }
 exports.onPageLoaded = onPageLoaded;
-exports.onTap = function(a) {
-	navigation.goToSessions()
-}
+exports.onTap = function(args) {
+  console.log(args.index);
+  navigation.goToDepartmentsForSession(allSessions.getItem(args.index));
+};

@@ -1,0 +1,48 @@
+<Page xmlns="http://www.nativescript.org/tns.xsd" loaded="onPageLoaded" navigatedTo="navigatedTo">
+	<page.actionBar>
+		<action-bar title="{{title}}" />
+	</page.actionBar>
+    <ScrollView>
+       <Repeater items="{{ myItems }}">
+         <Repeater.itemsLayout>
+            <StackLayout orientation="vertical" />
+         </Repeater.itemsLayout>
+         <Repeater.itemTemplate>
+            <StackLayout>
+                <GridLayout columns="*,auto" rows="44" cssClass="courseHeader">
+                    <StackLayout col="0" >
+                        <Label text="{{ code }}" cssClass="courseCode"/>
+                        <Label text="{{ title }}" cssClass="courseTitle"/>
+                    </StackLayout>
+                    <Label col="1" text="{{ units }}" cssClass="courseUnits" />
+                </GridLayout>
+
+                <Repeater items="{{ sections }}" cssClass="sectionList">
+
+                     <Repeater.itemsLayout>
+                        <StackLayout orientation="vertical"/>
+                     </Repeater.itemsLayout>
+                    <Repeater.itemTemplate>
+                        <StackLayout>
+                            <GridLayout columns="*,50,50,50" rows="44">
+                                <StackLayout col="0" >
+                                    <Label text="{{ instructor }}" cssClass="sectionInstructor"/>
+                                    <StackLayout orientation="horizontal">
+                                        <Label text="{{ dowString }}" cssClass="sectionDOW"/>
+                                        <Label text="{{ timeRange }}" cssClass="sectionTimeRange"/>
+                                    </StackLayout>
+                                </StackLayout>
+                                <Label col="1" text="{{ sectionNumber }}" cssClass="sectionNumber" />
+                                <button col="2" text="?" cssClass="sectionRating" tap="{{getRating}}"/>
+                                <button col="3" text="Add" cssClass="sectionAdd"/>
+                            </GridLayout>
+                            <StackLayout cssClass="borderbottom" height="1"></StackLayout>
+                        </StackLayout>
+                    </Repeater.itemTemplate>
+                </Repeater>
+
+            </StackLayout>
+         </Repeater.itemTemplate>
+       </Repeater>
+    </ScrollView>
+</Page>
