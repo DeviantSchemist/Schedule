@@ -2,9 +2,10 @@
 
 var observableArray = require("data/observable-array");
 var navigation = require("../../shared/navigation");
+var dept = require("../../models/class-search");
 
 function onPageLoaded(args) {
-	console.log(this);
+  //classes.getDepartments().then(console.log);
   var page = args.object;
   var array = new observableArray.ObservableArray();
 

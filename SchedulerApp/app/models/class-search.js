@@ -1,10 +1,7 @@
-// import requirements
+// // import requirements
 var cheerio = require('cheerio');
 var Q = require('q');
 var http = require('follow-redirects').http;
-require("console.table")
-
-
 
 /**
  * @param  {Array}      arr
@@ -25,29 +22,32 @@ Array.prototype.clean = function() {
   }
   return this;
 };
-
-
-/**
- * Generates a promise to retrieve the contents of a website
- * @param  {String} url
- * @return {Promise}
- */
-function httpRead(url) {
-  return Q.Promise(function(resolve, reject) {
-    http.get(url, function(res) {
-      var body = '';
-      res.on('data', function(chunk) {
-        body += chunk;
-      });
-      res.on('end', function() {
-        resolve(body);
-      });
-    }).on('error', function(e) {
-      reject(e);
-    }).on('error', function(e) {
-      reject(e);
-    }); 
-  })
+var httpRead;
+if(!http) {
+  httpRead = fetch;
+} else {
+  /**
+   * Generates a promise to retrieve the contents of a website
+   * @param  {String} url
+   * @return {Promise}
+   */
+  var httpRead = function(url) {
+    return Q.Promise(function(resolve, reject) {
+      http.get(url, function(res) {
+        var body = '';
+        res.on('data', function(chunk) {
+          body += chunk;
+        });
+        res.on('end', function() {
+          resolve(body);
+        });
+      }).on('error', function(e) {
+        reject(e);
+      }).on('error', function(e) {
+        reject(e);
+      }); 
+    })
+  }
 }
 
 /**
@@ -57,20 +57,23 @@ function httpRead(url) {
 function getSessions() {
   return httpRead("http://web.csulb.edu/depts/enrollment/registration/class_schedule/").then(function(value) {
     return Q.Promise(function (resolve) {
+      var terms = value.toString().match(/\<div class\=\"term\"[\s\S]*?\<\/div\>/igm);
 
-      var $ = cheerio.load(value.toString());
-      var terms = $(".term")
-      var links = terms.map(function() {
-        var link = $(this).find("a");
-        var image = $(link).find("img");
-        var iconLink = image.attr("src");
+      var links = terms.map(function(term,index) {
+        var linkString = term.match(/\<a href\=\"(.*?)\">/igm)[0];
+        var link = linkString.substring(9,linkString.length-2)
+        var imageString = term.match(/\<img\s{0,}src\=\"(.*?)\"/igm)[0];
 
+        var iconLink = imageString.substring(imageString.indexOf("\""), imageString.length-1)
+        var name = term.match(/\<span\>[\s\S]*?\<\/span\>/igm)[0]
+
+        name = name.replace(/<[^>]*>/igm, "").trim()
         return new Session({ 
-          "name" : link.text().trim(),
-          "url"  : link.attr("href"),
+          "name" : name,
+          "url"  : link,
           "icon" : "http://web.csulb.edu/depts/enrollment/registration/class_schedule/"+iconLink
         });
-      }).get();
+      });
       resolve(links);
     })
   })
@@ -84,23 +87,28 @@ function getSessions() {
  * @return {Promise} 
  */
 function getDepartmentsForSessionURL(sessionURL) {
+  var urlPart = sessionURL.substring(0, sessionURL.lastIndexOf("/")+1)
   return httpRead(sessionURL).then(function(value) {
     var deferred = Q.defer();
-    var $ = cheerio.load(value.toString());
-    var urlPart = sessionURL.substring(0, sessionURL.lastIndexOf("/")+1)
-    var links = $(".indexList li a");
-    deferred.resolve(links.map(function(i) {
-      var text = $(links[i]).text()
-      var splitter = text.lastIndexOf("(");
-      var name = text.substring(0,splitter).trim();
-      var code = text.substring(splitter+1).replace(")","");
-      return new Department({
-        "name" : name,
-        "code" : code,
-        "url" : urlPart+$(links[i]).attr("href")
-      });
-    }).get());
-    return deferred.promise;
+    var linksSection = value.toString().match(/\<div class=\"indexlist\"\>[\s\S]*?\<!-- end/igm)
+    if(linksSection && linksSection[0]) {
+      deferred.resolve(linksSection[0].match(/<a href\=\"[\s\S]*?\<\/a>/igm).map(function(link, index) {
+        var text = link.substring(link.indexOf(">")+1, link.lastIndexOf("<"));
+        var splitter = text.lastIndexOf("(");
+        var name = text.substring(0,splitter).trim();
+        var code = text.substring(splitter+1).replace(")","");
+        var linkString = link.match(/\<a href\=\"(.*?)\">/igm)[0];
+        var url = linkString.substring(9,linkString.length-2)
+        return new Department({
+          "name" : name,
+          "code" : code,
+          "url" : urlPart+url
+        });
+      }));
+    } else {
+      deferred.resolve([]);
+    }
+    return deferred.promise
   });
 }
 
@@ -138,26 +146,33 @@ function minutesToTimeString(minutes) {
 function getCoursesForDepartmentURL(departmentURL) {
     return httpRead(departmentURL).then(function(value) {
     var deferred = Q.defer();
-    var $ = cheerio.load(value.toString());
-    var courses = $(".courseBlock");
-    deferred.resolve(courses.map(function(i) {
-      var code = $(courses[i]).find(".courseCode").text();
-      var title = $(courses[i]).find(".courseTitle").text();
-      var units = $(courses[i]).find(".units").text().split(" ")[0];
-      var sectionTable = $(courses[i]).find(".sectionTable tr");
-      var sections = sectionTable.map(function(j) {
-        if(j === 0) {
-          // first row is header information.
-          return undefined; 
-        }
-        var sectionNumber = $(sectionTable[j]).find("th").eq(0).text()
-        var classNumber = $(sectionTable[j]).find("td").eq(0).text()
-        var type =  $(sectionTable[j]).find("td").eq(2).text()
-        var days = $(sectionTable[j]).find("td").eq(3).text()
-        var timeRange = $(sectionTable[j]).find("td").eq(4).text()
-        var open = $(sectionTable[j]).find(".dot").length > 0;
-        var location = $(sectionTable[j]).find("td").eq(6).text()
-        var instructor = $(sectionTable[j]).find("td").eq(7).text()
+    var courseBlocks = value.toString().match(/\<div class=\"courseBlock\"\>[\s\S]*?\<!-- end CourseBlock/igm)
+
+    deferred.resolve(courseBlocks.map(function(courseBlock, index) {
+
+      var codeString = courseBlock.match(/<span class\=\"courseCode\">[\s\S]*?<\/span>/igm)[0];
+      var code = codeString.substring(codeString.indexOf(">")+1,codeString.lastIndexOf("<"));
+      var titleString = courseBlock.match(/<span class\=\"courseTitle\">[\s\S]*?<\/span>/igm)[0];
+      var title = titleString.substring(titleString.indexOf(">")+1,titleString.lastIndexOf("<"));
+      var unitsString = courseBlock.match(/<span class\=\"units\">[\s\S]*?<\/span>/igm)[0];
+      var units = unitsString.substring(unitsString.indexOf(">")+1,unitsString.lastIndexOf("<"));
+            var courseRows = courseBlock.match(/<tr>[\s\S]*?<\/tr>/igm).slice(1);
+      //console.log(courseRows)
+      var sections = courseRows.map(function(row){ 
+        var pieces = row.match(/<(td|th)[\s\S]*?>[\s\S]*?<\/(td|th)>/igm) || [];
+        var cells = pieces.map(function(val) {
+          if(!val) return undefined
+          return val.substring(val.indexOf(">")+1, val.lastIndexOf("<"));
+        });
+        //console.log(cells);
+        var sectionNumber = cells[0];
+        var classNumber = cells[1];
+        var type = cells[3];
+        var days = cells[4];
+        var timeRange = cells[5];
+        var open = /greendot/.test(cells[6]);
+        var location = cells[7];
+        var instructor = cells[8];
         return new Section({
           "sectionNumber" : sectionNumber,
           "classNumber" : classNumber,
@@ -168,7 +183,7 @@ function getCoursesForDepartmentURL(departmentURL) {
           "location" : location,
           "instructor" : instructor
         });
-      }).get().clean(); // end of map
+      });
       return new Course({
         "code"  : code,
         "title" : title,
@@ -176,7 +191,7 @@ function getCoursesForDepartmentURL(departmentURL) {
         "sections" : sections
       });
 
-    }).get());
+    }))
     return deferred.promise;
   });
 }
@@ -366,7 +381,7 @@ var session;
         session.getDepartments() // make sure cache works
       }
       // console.log("course has "+courses[0].getNumberOfSections()+" sections.")
-      console.log(courses[0])
+      console.log(courses)
     })
   // var allSessions;
   // getSessions().then(function(sessions) {
