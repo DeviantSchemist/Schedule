@@ -51,10 +51,11 @@ Label {
 }
 .sectionRating {
 	color:#ffffff;
-	background-color: #43D652;
+	background-color: #7B7B81;
   horizontal-align: center;
   width:50;
 }
+
 .sectionAdd {
 	color:#ffffff;
 	background-color: #0B61FF;

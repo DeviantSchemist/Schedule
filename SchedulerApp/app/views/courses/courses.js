@@ -1,4 +1,5 @@
 "use strict";
+var colorModule = require("color");
 
 var observableArray = require("data/observable-array");
 var navigation = require("../../shared/navigation");
@@ -37,7 +38,7 @@ function getRating(professorName) {
     console.log("get rating!");
     var target = event.object;
     for(var i in target) {
-      console.log("---"+i+": "+target);
+      console.log("---"+i+": "+target[i]);
     }
     
     console.log("get rating");
@@ -46,9 +47,28 @@ function getRating(professorName) {
     var firstNameInitial = instructorParts[1];
     
     rmp.getProfessor(firstNameInitial, lastName).then(function(professor) {
-      dialogs.alert("Rating: "+professor.rating).then(console.log);
+      if(professor && professor.rating) {
+      //dialogs.alert("Rating: "+professor.rating).then(console.log);
+      if(target.text) {
+        target.text = professor.rating;
+      }
+      if(target.style) {
+        if(parseFloat(professor.rating) < 3) {
+          console.log("bad rating");
+          target.style.backgroundColor = new colorModule.Color("Red");
+        } else {
+          target.style.backgroundColor = new colorModule.Color("Green");
+        }
+
+      }
+      } else {
+       dialogs.alert("Cannot find teacher named "+professorName).then(console.log);
+       target.style.backgroundColor = new colorModule.Color("Black");
+       target.text = "X";
+
+      }
     }, function() {
-       dialogs.alert("No rating").then(console.log);
+       dialogs.alert("Error finding "+professorName).then(console.log);
     });
   }
 };
